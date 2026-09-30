@@ -1,0 +1,21 @@
+
+<!doctype html><html><head><meta charset="utf-8"><title>Retail Live Dashboard</title>
+<style>
+body{font-family:Arial;margin:0;background:#f3f5f8;color:#172033}header{background:#111827;color:#fff;padding:18px 24px}main{padding:20px;max-width:1500px;margin:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}.card{background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px #0001;flex:1;min-width:150px}select,input,button{padding:10px;border:1px solid #ccd3dc;border-radius:7px;background:white}
+.kpi{font-size:25px;font-weight:800;margin-top:6px}.filters{margin:16px 0}.table{background:#fff;padding:16px;border-radius:12px;margin-top:16px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px;border-bottom:1px solid #eee;text-align:left}
+</style></head><body><header><h2>Retail Merchandiser LIVE Dashboard</h2><small>Multi-user API connected dashboard</small></header><main>
+<div class="filters row"><input type="file" id="file"><button onclick="upload()">Upload Data</button>
+<select id="store" onchange="load()"><option value="">All Stores</option></select><select id="brand" onchange="load()"><option value="">All Brands</option></select><select id="category" onchange="load()"><option value="">All Categories</option></select><button onclick="location.reload()">Refresh</button></div>
+<div class="row"><div class="card">Sales<div class=kpi id=sales>0</div></div><div class=card>Stock<div class=kpi id=stock>0</div></div><div class=card>WOC<div class=kpi id=woc>0</div></div><div class=card>OOS<div class=kpi id=oos>0</div></div><div class=card>MTD<div class=kpi id=mtd>0</div></div><div class=card>YTD<div class=kpi id=ytd>0</div></div></div>
+<div class=table><h3>Merchandiser Action View</h3><table><thead><tr><th>Store</th><th>Brand</th><th>Item</th><th>Sales</th><th>Stock</th><th>Age</th><th>Action</th><th>Refill</th></tr></thead><tbody id=body></tbody></table></div>
+</main><script>
+const API=location.protocol==="file:"?"http://localhost:8000":"";
+const $=id=>document.getElementById(id);
+const qs=()=>({store:$("store").value,brand:$("brand").value,category:$("category").value});
+async function upload(){let f=$("file").files[0];if(!f)return alert("Select Excel/CSV");let fd=new FormData();fd.append("file",f);let r=await fetch(API+"/api/upload",{method:"POST",body:fd});let x=await r.json();alert(x.status==="success"?`Uploaded ${x.rows.toLocaleString()} rows`:(x.detail||"Upload failed"));await options();await load()}
+async function options(){let x=await (await fetch(API+"/api/options")).json();for(let c of ["store","brand","category"]){let s=$(c),old=s.value;s.innerHTML='<option value="">All '+c+'</option>'+x[c].map(v=>`<option>${v}</option>`).join("");s.value=old}}
+async function load(){let q=new URLSearchParams(qs());let x=await (await fetch(API+"/api/kpi?"+q)).json();for(let k of ["sales","stock","oos","mtd","ytd"])$(k).textContent=Number(x[k]).toLocaleString();$("woc").textContent=Number(x.woc).toFixed(1);
+let a=await (await fetch(API+"/api/actions")).json();$("body").innerHTML=a.map(r=>`<tr><td>${r.store}</td><td>${r.brand}</td><td>${r.item}</td><td>${Number(r.sales).toLocaleString()}</td><td>${Number(r.stock).toLocaleString()}</td><td>${r.age}</td><td>${r.action}</td><td>${Number(r.refill).toLocaleString()}</td></tr>`).join("")}
+options().then(load);
+</script></body></html>
